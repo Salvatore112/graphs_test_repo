@@ -7,9 +7,9 @@ on:
     branches: ["*"]
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
 
@@ -18,27 +18,45 @@ jobs:
       with:
         go-version: '1.24.0'
 
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.mod') }}
-        restore-keys: |
-          ${{ runner.os }}-go-mod-
-
-    - name: Go fmt check
-      run: |
-        gofmt -l -w .  # Automatically format files, or `gofmt -l .` for just checking
-
-    - name: GolangCI-Lint check
-      run: |
-        curl -sSfL https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz | tar -xzv -C /tmp
-        /tmp/golangci-lint-1.51.2-linux-amd64/golangci-lint run
-
     - name: Build
       run: go build -v ./...
 
     - name: Test
       run: go test -v ./...
+
+  formatter:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.0'
+
+    - name: Check Go formatting
+      run: |
+        if ! gofmt -l . | grep -q .; then
+          echo "All Go files are properly formatted"
+        else
+          echo "The following Go files are not properly formatted:" && gofmt -l .
+          exit 1
+        fi
+
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.0'
+
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz | tar -xz -C /tmp
+        sudo mv /tmp/golangci-lint-1.51.2-linux-amd64/golangci-lint /usr/local/bin/
+
+    - name: Run golangci-lint
+      run: golangci-lint run
