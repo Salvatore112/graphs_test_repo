@@ -18,16 +18,24 @@ jobs:
       with:
         go-version: '1.24.0'
 
-    - name: Install golangci-lint
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.mod') }}
+        restore-keys: |
+          ${{ runner.os }}-go-mod-
+
+    - name: Go fmt check
       run: |
-        curl -sSfL https://github.com/golangci/golangci-lint/releases/download/v1.55.2/golangci-lint-1.55.2-linux-amd64.tar.gz | tar -xz -C /tmp
-        sudo mv /tmp/golangci-lint-*/golangci-lint /usr/local/bin/
+        gofmt -l -w .  # Automatically format files, or `gofmt -l .` for just checking
 
-    - name: Format Go code (go fmt)
-      run: go fmt ./...
-
-    - name: Lint Go code
-      run: golangci-lint run --timeout 5m
+    - name: GolangCI-Lint check
+      run: |
+        curl -sSfL https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz | tar -xzv -C /tmp
+        /tmp/golangci-lint-1.51.2-linux-amd64/golangci-lint run
 
     - name: Build
       run: go build -v ./...
